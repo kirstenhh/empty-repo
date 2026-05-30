@@ -1,0 +1,50 @@
+name: M5B evidence archival test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  archive-evidence:
+    runs-on: self-hosted
+
+    steps:
+      - name: Build CI/CD evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > /tmp/m5b-evidence.json <<EOF
+          {
+            "run_id": "${GITHUB_RUN_ID}",
+            "repo": "${GITHUB_REPOSITORY}",
+            "workflow": "${GITHUB_WORKFLOW}",
+            "run_url": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}",
+            "commit_sha": "${GITHUB_SHA}",
+            "branch": "${GITHUB_REF_NAME}",
+            "actor": "${GITHUB_ACTOR}",
+            "runner": "${RUNNER_NAME}",
+            "status": "success"
+          }
+          EOF
+
+          cat /tmp/m5b-evidence.json
+
+      - name: Archive evidence in RustFS
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd ~/m5-poc/m5b/pablo
+          RUN_ID="${GITHUB_RUN_ID}" TS="${GITHUB_RUN_ID}" ./scripts/evidence-upload.sh /tmp/m5b-evidence.json
+      
+      - name: Verify archived evidence
+        shell: bash
+        run: |
+           set -euo pipefail
+           cd ~/m5-poc/m5b/pablo
+           ./scripts/check-evidence.sh "${GITHUB_RUN_ID}"
+           ./scripts/retention-check.sh "${GITHUB_RUN_ID}"
+
+
