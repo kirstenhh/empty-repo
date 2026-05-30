@@ -1,0 +1,52 @@
+name: M5A PoC
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/poc.yml'
+      - 'src/**'
+
+jobs:
+  evidence:
+    runs-on: [self-hosted, csi-poc]
+    steps:
+      - name: Print evidence start
+        run: |
+          echo "M5A-EVIDENCE start run=${GITHUB_RUN_ID} repo=${GITHUB_REPOSITORY} sha=${GITHUB_SHA} job=${GITHUB_JOB} actor=${GITHUB_ACTOR} ts=$(date -u +%FT%TZ)"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Write run metadata
+        run: |
+          mkdir -p out
+          cat > out/run-metadata.json <<EOF
+          {
+            "run_id":    "${GITHUB_RUN_ID}",
+            "run_url":   "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}",
+            "repo":      "${GITHUB_REPOSITORY}",
+            "sha":       "${GITHUB_SHA}",
+            "ref":       "${GITHUB_REF}",
+            "actor":     "${GITHUB_ACTOR}",
+            "timestamp": "$(date -u +%FT%TZ)"
+          }
+          EOF
+          cat out/run-metadata.json
+
+      - name: Print evidence end
+        if: always()
+        run: |
+          echo "M5A-EVIDENCE end run=${GITHUB_RUN_ID} status=${{ job.status }} ts=$(date -u +%FT%TZ)"
+
+      - name: Archive evidence to RustFS (M5B)
+        if: always()
+        run: |
+          set -e
+          export RUN_ID="${GITHUB_RUN_ID}"
+          export TS="$(date +%s)"
+          export WAZUH_LOG="$(printf 'M5A-EVIDENCE start run=%s repo=%s sha=%s job=%s actor=%s\nM5A-EVIDENCE end run=%s status=%s' \
+            "$GITHUB_RUN_ID" "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$GITHUB_JOB" "$GITHUB_ACTOR" \
+            "$GITHUB_RUN_ID" "${{ job.status }}")"
+          /usr/local/bin/evidence-upload.sh
