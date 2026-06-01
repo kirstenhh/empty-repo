@@ -37,7 +37,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          cd ~/m5-poc/m5b/pablo
+          cd ~/m5-poc/m5b
           RUN_ID="${GITHUB_RUN_ID}" TS="${GITHUB_RUN_ID}" ./scripts/evidence-upload.sh /tmp/m5b-evidence.json
 
       - name: Verify archived evidence
@@ -45,6 +45,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          cd ~/m5-poc/m5b/pablo
+          cd ~/m5-poc/m5b
           ./scripts/check-evidence.sh "${GITHUB_RUN_ID}"
           ./scripts/retention-check.sh "${GITHUB_RUN_ID}"
